@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+
+/* Keep the field simple: only infield and outfield color regions remain. */
+body{font-family:'Noto Sans KR','DM Mono',sans-serif}
+body:before{display:none}
+.field:before{display:none}
+.field-marker{width:74px;min-height:40px;padding:5px;background:#ffffffed;border:1px solid #e0e7e1;border-radius:10px;box-shadow:0 4px 9px #12371d1c;color:#526358}
+.field-marker b{max-width:70px}
+.field-marker.picked{background:#1c6b3a;border-color:#1c6b3a;color:#fff;box-shadow:0 5px 12px #0f4d2b40}
+.field-marker.picked span{color:#dcf577}
+h1{font-weight:700;letter-spacing:-.04em}
+h2,.wordmark,.roulette-inner p,.result strong,.player b{font-weight:700}
+.hero aside,.choices>p,.result p:not(.kicker),.summary{font-size:13px!important;line-height:1.7!important}
+.field-marker{font-family:'Noto Sans KR',sans-serif}.field-marker span{font-size:9px}.field-marker b{font-size:11px}
+.pitch-card span{font-size:9px}.pitch-card b{font-family:'Noto Sans KR',sans-serif;font-size:11px}
+.player span{font-size:10px}.player small{font-size:10px;line-height:1.55}.foreign,.status{font-size:11px}
+.analysis{align-items:flex-start}.score-list{display:grid;grid-template-columns:repeat(3,minmax(92px,1fr));gap:9px;flex:1}.score-card{min-height:91px;padding:12px;border:1px solid #d9e5dc;border-radius:10px;background:#f8fcf8}.score-card span{display:block;font-size:12px;font-weight:600;color:#496252}.score-card b{display:inline-block;margin-top:10px;font:700 31px/1 'Barlow Condensed',sans-serif;color:#1c6b3a}.score-card small{font-size:11px;color:#738077;margin-left:3px}
+@media(max-width:800px){.score-list{width:100%;grid-template-columns:repeat(2,1fr)}.score-card{min-height:82px}}
