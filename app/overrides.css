@@ -23,4 +23,4 @@ h2,.wordmark,.roulette-inner p,.result strong,.player b{font-weight:700}
 @media(max-width:800px){.marker-2B{right:27%}.marker-SS{left:27%}}
 /* Tablet landscape needs the same wider middle-infield spacing. */
 @media(min-width:801px) and (max-width:1180px){.marker-2B{right:27%}.marker-SS{left:27%}}
-.player b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player b{font-size:18px;letter-spacing:-.045em;white-space:nowrap;overflow:visible;text-overflow:clip}
