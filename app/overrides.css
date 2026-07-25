@@ -24,3 +24,5 @@ h2,.wordmark,.roulette-inner p,.result strong,.player b{font-weight:700}
 /* Tablet landscape needs the same wider middle-infield spacing. */
 @media(min-width:801px) and (max-width:1180px){.marker-2B{right:27%}.marker-SS{left:27%}}
 .player b{font-size:18px;letter-spacing:-.045em;white-space:nowrap;overflow:visible;text-overflow:clip}
+.site-version{display:flex;justify-content:space-between;gap:16px;margin:28px 0 6px;padding-top:14px;border-top:1px solid #d9e5dc;color:#829087;font:500 10px/1.4 'DM Mono',monospace;letter-spacing:.04em}
+@media(max-width:800px){.site-version{font-size:8px;gap:8px}}
