@@ -21,3 +21,6 @@ h2,.wordmark,.roulette-inner p,.result strong,.player b{font-weight:700}
 .analysis{align-items:flex-start}.score-list{display:grid;grid-template-columns:repeat(3,minmax(92px,1fr));gap:9px;flex:1}.score-card{min-height:91px;padding:12px;border:1px solid #d9e5dc;border-radius:10px;background:#f8fcf8}.score-card span{display:block;font-size:12px;font-weight:600;color:#496252}.score-card b{display:inline-block;margin-top:10px;font:700 31px/1 'Barlow Condensed',sans-serif;color:#1c6b3a}.score-card small{font-size:11px;color:#738077;margin-left:3px}
 @media(max-width:800px){.candidate-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.score-list{width:100%;grid-template-columns:repeat(2,1fr)}.score-card{min-height:82px}}
 @media(max-width:800px){.marker-2B{right:27%}.marker-SS{left:27%}}
+/* Tablet landscape needs the same wider middle-infield spacing. */
+@media(min-width:801px) and (max-width:1180px){.marker-2B{right:27%}.marker-SS{left:27%}}
+.player b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
