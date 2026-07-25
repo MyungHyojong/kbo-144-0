@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import hitterData from './hitter_defense_stats.json';
+import pitcherData from './pitcher_stats.json';
 
 export type Slot = 'C' | '1B' | '2B' | 'SS' | '3B' | 'LF' | 'CF' | 'RF' | 'DH' | 'SP1' | 'SP2' | 'SP3' | 'SP4' | 'RP1' | 'RP2' | 'RP3';
 export type Player = {
@@ -38,11 +39,7 @@ function parseCsvLine(line: string) {
 }
 
 function csvRows(filename: string) {
-  return readFileSync(new URL(`./${filename}`, import.meta.url), 'utf8')
-    .replace(/^\uFEFF/, '')
-    .trim()
-    .split(/\r?\n/)
-    .map(parseCsvLine);
+  return (filename.startsWith('hitter') ? hitterData : pitcherData) as string[][];
 }
 
 function number(value: string | undefined) {
