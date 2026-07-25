@@ -27,6 +27,7 @@ const isOutfield = (slot: Slot) => outfieldSlots.includes(slot);
 const isStarter = (slot: Slot) => starterSlots.includes(slot);
 const isBullpen = (slot: Slot) => bullpenSlots.includes(slot);
 const firstOpen = (roster: Record<string, Player>, slots: Slot[]) => slots.find((slot) => !roster[slot]);
+const seasonName = (player: Player) => `${String(player.season).slice(-2)}-${String((player.season + 1) % 100).padStart(2, '0')} ${player.name}`;
 
 function SpiderChart({ traits }: { traits: Record<string, number> }) {
   const labels = ['타격', '수비', '선발', '불펜', '주루', '조화'];
@@ -57,6 +58,7 @@ export default function Home() {
   const [roster, setRoster] = useState<Record<string, Player>>({});
   const [offer, setOffer] = useState<Offer | null>(null);
   const [rerolls, setRerolls] = useState(2);
+  const [dhMode, setDhMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
 
@@ -72,33 +74,49 @@ export default function Home() {
     setRoster({});
     setOffer(null);
     setRerolls(2);
+    setDhMode(false);
     setResult(null);
     setLoading(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function spin(reroll = false) {
+  async function spin(reroll = false, nextDhMode = false) {
+    if (loading || (reroll && rerolls <= 0)) return;
+    if (reroll) setRerolls((value) => Math.max(0, value - 1));
     setLoading(true);
     const response = await fetch('/api/draft', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ excluded: selected.map((player) => player.id), filledSlots: Object.keys(roster), previous: offer?.context, reroll }),
+      body: JSON.stringify({ excluded: selected.map((player) => player.id), filledSlots: Object.keys(roster), previous: offer?.context, reroll, dhMode: nextDhMode }),
     });
     const data = await response.json();
     setLoading(false);
-    if (response.ok) { setOffer(data); if (reroll) setRerolls((value) => value - 1); }
+    if (response.ok) { setOffer(data); setDhMode(nextDhMode); }
   }
 
   function choose(player: Player) {
     if (player.foreign && foreign >= 3) return;
     const next = { ...roster };
-    let target: Slot | undefined = player.slot;
-    if (isOutfield(player.slot)) target = outfieldCount < 3 ? firstOpen(next, outfieldSlots) : undefined;
-    else if (isStarter(player.slot)) target = starterCount < 4 ? firstOpen(next, starterSlots) : undefined;
-    else if (isBullpen(player.slot)) target = bullpenCount < 3 ? firstOpen(next, bullpenSlots) : undefined;
-    else if (next[player.slot]) target = undefined;
+    const target = dhMode ? (!next.DH ? 'DH' : undefined) : availableSlotFor(player, next);
     if (!target) return;
     next[target] = { ...player, slot: target };
-    setRoster(next); setOffer(null); setResult(null);
+    setRoster(next); setOffer(null); setDhMode(false); setResult(null);
+  }
+
+  function availableSlotFor(player: Player, currentRoster = roster): Slot | undefined {
+    const eligibleSlots = player.slots?.length ? player.slots : [player.slot];
+    for (const slot of eligibleSlots) {
+      if (isOutfield(slot)) {
+        const open = firstOpen(currentRoster, outfieldSlots);
+        if (open) return open;
+      } else if (isStarter(slot)) {
+        const open = firstOpen(currentRoster, starterSlots);
+        if (open) return open;
+      } else if (isBullpen(slot)) {
+        const open = firstOpen(currentRoster, bullpenSlots);
+        if (open) return open;
+      } else if (!currentRoster[slot]) return slot;
+    }
+    return undefined;
   }
 
   async function simulate() {
@@ -111,13 +129,14 @@ export default function Home() {
 
   const marker = (slot: Slot) => {
     const player = roster[slot];
-    return <div className={`field-marker marker-${slot} ${player ? 'picked' : ''}`} key={slot}><span>{slotLabels[slot]}</span><b>{player?.name || '빈 자리'}</b></div>;
+    return <div className={`field-marker marker-${slot} ${player ? 'picked' : ''}`} key={slot}><span>{slotLabels[slot]}</span><b>{player ? seasonName(player) : '빈 자리'}</b></div>;
   };
 
   const renderCandidate = (player: Player) => {
-    const occupied = (isOutfield(player.slot) && outfieldCount >= 3) || (isStarter(player.slot) && starterCount >= 4) || (isBullpen(player.slot) && bullpenCount >= 3) || (!isOutfield(player.slot) && !isStarter(player.slot) && !isBullpen(player.slot) && Boolean(roster[player.slot])) || (player.foreign && foreign >= 3);
-    return <button className={`player ${occupied ? 'occupied' : ''}`} key={player.id} disabled={occupied} onClick={() => choose(player)}>
-      <span>{slotLabels[player.slot]} · {slotGroups[player.slot]} {player.foreign ? '· 외국인' : ''}</span><b>{player.name}</b><small>{mode === 'classic' ? player.line : '기록 비공개 · 선수 이름과 포지션만 보고 선택'}</small>
+    const occupied = (dhMode ? Boolean(roster.DH) : !availableSlotFor(player)) || (player.foreign && foreign >= 3);
+    const positions = [player.primaryPosition, player.secondaryPosition].filter(Boolean).join(' | ');
+    return <button className={`player ${player.foreign ? 'foreign-player' : ''} ${dhMode && player.type === 'hitter' ? 'dh-choice' : ''} ${occupied ? 'occupied' : ''}`} key={player.id} disabled={occupied} onClick={() => choose(player)}>
+      <span>{positions}{player.foreign ? ' · 외국인' : ''}</span><b>{player.name}</b><small>{mode === 'classic' ? player.line : '기록 비공개 · 선수 이름과 포지션만 보고 선택'}</small>
     </button>;
   };
 
@@ -125,8 +144,8 @@ export default function Home() {
     <nav><a className="wordmark" href="/">144<span>-0</span></a><div className="nav-center"><button className={mode === 'classic' ? 'selected' : ''} onClick={() => restart('classic')}>CLASSIC</button><button className={mode === 'iq' ? 'selected' : ''} onClick={() => restart('iq')}>BASEBALL IQ</button></div><span className="status"><i /> KBO EDITION</span></nav>
     <section className="hero"><div><p className="kicker">THE ALL-TIME KBO ROSTER GAME</p><h1>BUILD A TEAM<br />THAT <em>NEVER</em> LOSES.</h1></div><aside><b>HOW IT WORKS</b><p>팀과 시즌을 돌리고, 그 시즌 로스터에서 한 명을 골라 라인업을 완성하세요.</p><div><span>16 SLOTS</span><span>3 FOREIGN MAX</span><span>144 GAMES</span></div></aside></section>
     <section className="game">
-      <section className="roster panel"><div className="panel-head"><div><p className="kicker">01 / YOUR CLUB</p><h2>FIELD <small>{selected.length}/16</small></h2></div><div className="foreign">FOREIGN <b>{foreign}/3</b></div></div><div className="field"><div className="infield" />{fieldSlots.map(marker)}</div><div className="pitching"><p>ROTATION & BULLPEN</p><div className="pitch-list">{pitchSlots.map((slot) => { const player = roster[slot]; return <div className={`pitch-card ${player ? '' : 'empty'}`} key={slot}><span>{slotLabels[slot]}</span><b>{player?.name || '빈 자리'}</b></div>; })}</div></div></section>
-      <section className="draft panel"><div className="panel-head"><div><p className="kicker">02 / TEAM & SEASON ROULETTE</p><h2>{offer ? `${offer.context.team} / ${offer.context.season}` : 'SPIN FOR A ROSTER'}</h2></div><span className={`mode-chip ${mode}`}>{mode === 'classic' ? 'CLASSIC' : 'IQ MODE'}</span></div><div className="roulette"><div className="wheel" /><div className="roulette-inner"><p>{offer ? offer.context.team : 'WHO IS NEXT?'}</p><strong>{offer ? `${offer.context.season} SEASON ROSTER` : 'KBO TIME MACHINE'}</strong><button className="spin" disabled={loading || complete} onClick={() => spin()}>{loading ? 'SPINNING...' : 'SPIN THE ROULETTE'}</button><button className="reroll" disabled={!offer || rerolls === 0 || loading} onClick={() => spin(true)}>REROLL <b>{rerolls}/2</b></button></div></div><div className="choices roster-choices">{offer ? offer.candidates.map(renderCandidate) : <p>룰렛을 돌린 다음,<br />그 팀과 시즌의 로스터에서 한 명을 선택하세요.</p>}</div></section>
+      <section className="roster panel"><div className="panel-head"><div><p className="kicker">01 / YOUR CLUB</p><h2>FIELD <small>{selected.length}/16</small></h2></div><div className="foreign">FOREIGN <b>{foreign}/3</b></div></div><div className="field"><div className="infield" />{fieldSlots.map(marker)}</div><div className="pitching"><p>ROTATION & BULLPEN</p><div className="pitch-list">{pitchSlots.map((slot) => { const player = roster[slot]; return <div className={`pitch-card ${player ? 'picked' : 'empty'}`} key={slot}><span>{slotLabels[slot]}</span><b>{player ? seasonName(player) : '빈 자리'}</b></div>; })}</div></div></section>
+      <section className="draft panel"><div className="panel-head"><div><p className="kicker">02 / TEAM & SEASON ROULETTE</p><h2>{offer ? `${offer.context.season} ${offer.context.team}` : 'SPIN FOR A ROSTER'}</h2></div><span className={`mode-chip ${mode}`}>{mode === 'classic' ? 'CLASSIC' : 'IQ MODE'}</span></div><div className="roulette"><div className="wheel" /><div className="roulette-inner"><p>{offer ? `${offer.context.season} ${offer.context.team}` : 'WHO IS NEXT?'}</p><strong>{offer ? 'SEASON ROSTER' : 'KBO TIME MACHINE'}</strong><button className="spin" disabled={loading || complete || Boolean(offer)} onClick={() => spin()}>{loading ? 'SPINNING...' : 'SPIN THE ROULETTE'}</button><button className="reroll" disabled={!offer || rerolls === 0 || loading} onClick={() => spin(true)}>REROLL <b>{rerolls}/2</b></button></div></div><div className="choices roster-choices">{offer ? <><section className="candidate-section"><p className="candidate-heading">타자 <span>{dhMode ? 'DESIGNATED HITTER' : 'POSITION PLAYERS'}</span>{!roster.DH && <button className="dh-select" onClick={() => setDhMode((value) => !value)}>{dhMode ? '포지션 선택으로 복귀' : '지명타자로 선택'}</button>}</p><div className="candidate-grid">{offer.candidates.filter((player) => player.type === 'hitter').map(renderCandidate)}</div></section>{!dhMode && <section className="candidate-section"><p className="candidate-heading">투수 <span>PITCHERS</span></p><div className="candidate-grid">{offer.candidates.filter((player) => player.type === 'pitcher').map(renderCandidate)}</div></section>}</> : <p>룰렛을 돌린 다음,<br />그 팀과 시즌의 로스터에서 한 명을 선택하세요.</p>}</div></section>
     </section>
     <section className="season-action"><div><p className="kicker">READY FOR THE SEASON?</p><b>{complete ? '라인업 완성. 이제 144경기를 시작할 수 있습니다.' : `남은 자리 ${16 - selected.length}개를 채워 주세요.`}</b></div><button disabled={!complete || loading} onClick={simulate}>{loading ? 'SIMULATING...' : '시즌 진행'}</button></section>
     {result && <section className="result"><div className="record"><p className="kicker">PROJECTED KBO SEASON</p><strong>{result.wins}-{result.losses}</strong><p>이 로스터가 144경기를 치렀을 때의 예상 성적입니다.</p><button className="restart-game" onClick={() => restart()}>다시 게임하기</button></div><div className="analysis"><div><p className="kicker">TEAM DNA</p><b className="chance">{result.chance}%</b><span>144-0 달성 확률</span>{result.summary.map((item) => <p className="summary" key={item}>{item}</p>)}</div><div className="score-list">{Object.entries(result.traits).map(([label, score]) => <div className="score-card" key={label}><span>{label}</span><b>{score}</b><small>/ 100점</small></div>)}</div></div></section>}

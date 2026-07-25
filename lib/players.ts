@@ -1,37 +1,176 @@
+import { readFileSync } from 'node:fs';
+
 export type Slot = 'C' | '1B' | '2B' | 'SS' | '3B' | 'LF' | 'CF' | 'RF' | 'DH' | 'SP1' | 'SP2' | 'SP3' | 'SP4' | 'RP1' | 'RP2' | 'RP3';
-export type Player = { id: string; name: string; slot: Slot; team: string; season: number; foreign: boolean; type: 'hitter' | 'pitcher'; line: string; score: number };
+export type Player = {
+  id: string;
+  name: string;
+  slot: Slot;
+  slots: Slot[];
+  team: string;
+  season: number;
+  foreign: boolean;
+  type: 'hitter' | 'pitcher';
+  line: string;
+  score: number;
+  appearances: number;
+  primaryPosition: string;
+  secondaryPosition?: string;
+  metrics: Record<string, number>;
+};
+
 export const slotOrder: Slot[] = ['C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF', 'DH', 'SP1', 'SP2', 'SP3', 'SP4', 'RP1', 'RP2', 'RP3'];
 
-type RosterSeed = { team: string; season: number; foreignSlots: Slot[]; names: Record<Slot, string>; scores: number[] };
+type HitterRow = { season: number; team: string; teamCode: string; id: string; name: string; foreign: boolean; games: number; avg: string; homers: string; rbi: string; ops: string; primary: string; secondary?: string; raw: string[] };
+type PitcherRow = { season: number; team: string; teamCode: string; id: string; name: string; foreign: boolean; games: number; era: string; wins: string; saves: string; holds: string; starts: number; role: string; raw: string[] };
 
-// Each team-season has a fixed roster: the name and the position never change by roulette spin.
-const rosters: RosterSeed[] = [
-  { team: '서울 레인저스', season: 2002, foreignSlots: ['SP2'], scores: [85,90,84,88,86,87,91,86,89,92,95,87,84,86,88,90], names: { C:'강도윤','1B':'백태진','2B':'신우성',SS:'문재호','3B':'윤현석',LF:'차민규',CF:'한이준',RF:'서도현',DH:'김태현',SP1:'류건우',SP2:'마크윤',SP3:'장시후',SP4:'오태경',RP1:'노진우',RP2:'최강민',RP3:'배도훈' } },
-  { team: '부산 블루웨이브', season: 2005, foreignSlots: ['1B','SP1'], scores: [86,94,87,91,88,85,92,88,91,96,93,89,86,87,91,90], names: { C:'박준서','1B':'로건김','2B':'김시온',SS:'오재민','3B':'유승호',LF:'정도겸',CF:'이도겸',RF:'송하준',DH:'문태영',SP1:'데이비드박',SP2:'윤석진',SP3:'안도윤',SP4:'권시훈',RP1:'서준혁',RP2:'임성호',RP3:'구민재' } },
-  { team: '대구 드래곤즈', season: 2008, foreignSlots: ['RF'], scores: [88,89,90,93,87,91,90,95,92,94,89,91,88,93,87,89], names: { C:'서민호','1B':'도현우','2B':'유강민',SS:'황재훈','3B':'강민석',LF:'천도윤',CF:'박지환',RF:'케빈최',DH:'이준형',SP1:'문현우',SP2:'김태윤',SP3:'안재민',SP4:'조성호',RP1:'송재현',RP2:'차우진',RP3:'최시온' } },
-  { team: '인천 스카이문', season: 2011, foreignSlots: ['DH','SP3'], scores: [87,92,88,90,91,89,93,87,96,90,88,94,87,91,92,90], names: { C:'임도현','1B':'백준호','2B':'김하람',SS:'노승현','3B':'장유찬',LF:'신태오',CF:'윤도현',RF:'서준영',DH:'제이크문',SP1:'오민재',SP2:'한시우',SP3:'루크신',SP4:'정현석',RP1:'유민호',RP2:'권태윤',RP3:'박성진' } },
-  { team: '광주 타이탄즈', season: 2014, foreignSlots: ['CF'], scores: [90,94,91,89,93,88,97,94,90,95,91,90,93,89,92,94], names: { C:'차성윤','1B':'이준호','2B':'박현우',SS:'김도겸','3B':'송재윤',LF:'한민재',CF:'브랜든강',RF:'문시후',DH:'정도윤',SP1:'장우진',SP2:'서재현',SP3:'노태현',SP4:'윤진호',RP1:'배시환',RP2:'오준석',RP3:'최도윤' } },
-  { team: '대전 이글스', season: 2016, foreignSlots: ['SP1','RP2'], scores: [85,89,91,88,90,93,91,89,92,97,91,88,90,92,95,89], names: { C:'권민석','1B':'서하진','2B':'김윤호',SS:'조도현','3B':'장민규',LF:'오시우',CF:'한재민',RF:'신도윤',DH:'문태석',SP1:'에반류',SP2:'박성윤',SP3:'이현우',SP4:'최재훈',RP1:'백진호',RP2:'카일문',RP3:'윤태민' } },
-  { team: '수원 메테오스', season: 2018, foreignSlots: ['SP2'], scores: [87,88,90,86,91,89,93,90,88,94,96,89,91,92,90,93], names: { C:'박성민','1B':'최민준','2B':'정승호',SS:'강현우','3B':'윤태양',LF:'한준서',CF:'신예준',RF:'장민석',DH:'문성민',SP1:'서민준',SP2:'알렉스리',SP3:'오현우',SP4:'임태양',RP1:'송준서',RP2:'김예준',RP3:'이민석' } },
-  { team: '창원 다이노스', season: 2020, foreignSlots: ['1B','SP4'], scores: [91,96,92,94,90,93,95,92,97,93,91,94,96,88,90,95], names: { C:'김도윤','1B':'매튜한','2B':'류현민',SS:'박시환','3B':'오지훈',LF:'문건우',CF:'서진혁',RF:'장도현',DH:'최승민',SP1:'한태준',SP2:'윤서진',SP3:'노준영',SP4:'제이박',RP1:'강지후',RP2:'이태성',RP3:'신현우' } },
-  { team: '잠실 베어스', season: 2022, foreignSlots: ['LF'], scores: [92,93,89,95,94,98,91,93,96,95,92,94,90,91,94,92], names: { C:'윤성호','1B':'차준혁','2B':'문도윤',SS:'김태민','3B':'이승현',LF:'제임스오',CF:'박주원',RF:'서재민',DH:'한도윤',SP1:'오성민',SP2:'정우진',SP3:'류태경',SP4:'백현석',RP1:'송도현',RP2:'임시우',RP3:'장윤호' } },
-  { team: '고양 히어로즈', season: 2024, foreignSlots: ['DH','SP1'], scores: [89,95,93,92,96,90,94,91,98,98,94,92,95,93,96,94], names: { C:'한성민','1B':'신도겸','2B':'최준혁',SS:'오태윤','3B':'김시후',LF:'박우진',CF:'윤재호',RF:'문현석',DH:'라이언김',SP1:'앤디서',SP2:'장성우',SP3:'노민재',SP4:'이태훈',RP1:'서건우',RP2:'강재민',RP3:'백도윤' } },
-];
-
-function statLine(slot: Slot, score: number, order: number) {
-  if (slot.startsWith('SP') || slot.startsWith('RP')) {
-    const era = (4.2 - (score - 78) * 0.09).toFixed(2);
-    return `평균자책 ${era} / 승 ${6 + (order % 14)} / 세이브 ${slot.startsWith('RP') ? 10 + (order % 27) : 0}`;
+function parseCsvLine(line: string) {
+  const cells: string[] = [];
+  let value = '';
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"') {
+      if (quoted && line[index + 1] === '"') { value += '"'; index += 1; } else quoted = !quoted;
+    } else if (character === ',' && !quoted) { cells.push(value); value = ''; } else value += character;
   }
-  return `타율 .${260 + (score - 78) * 2} / 홈런 ${8 + (order % 23)} / OPS .${720 + (score - 78) * 8}`;
+  cells.push(value);
+  return cells;
 }
 
-export const seasonRosters = rosters.map((roster, rosterIndex) => ({
-  context: { team: roster.team, season: roster.season },
-  candidates: slotOrder.map((slot, index) => ({
-    id: `${roster.season}-${slot}`,
-    name: roster.names[slot], slot, team: roster.team, season: roster.season,
-    foreign: roster.foreignSlots.includes(slot), type: slot.startsWith('SP') || slot.startsWith('RP') ? 'pitcher' : 'hitter',
-    line: statLine(slot, roster.scores[index], rosterIndex * 16 + index), score: roster.scores[index],
-  })),
-}));
+function csvRows(filename: string) {
+  return readFileSync(new URL(`./${filename}`, import.meta.url), 'utf8')
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .split(/\r?\n/)
+    .map(parseCsvLine);
+}
+
+function number(value: string | undefined) {
+  const parsed = Number((value || '').replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function fixed(value: string | undefined, digits: number, fallback = 0) {
+  const parsed = number(value);
+  return (Number.isFinite(parsed) ? parsed : fallback).toFixed(digits);
+}
+
+function positionSlots(position?: string): Slot[] {
+  switch (position) {
+    case '포수': return ['C'];
+    case '1루수': return ['1B'];
+    case '2루수': return ['2B'];
+    case '3루수': return ['3B'];
+    case '유격수': return ['SS'];
+    case '외야수': return ['LF', 'CF', 'RF'];
+    case '지명타자': return ['DH'];
+    default: return [];
+  }
+}
+
+const hitterRows: HitterRow[] = csvRows('hitter_defense_stats_foreign.csv').slice(1).map((row) => ({
+  season: number(row[0]), team: row[1], teamCode: row[2], foreign: row[4] === '1', name: row[5], id: row[6],
+  games: number(row[9]), avg: fixed(row[8], 3), homers: row[16], rbi: row[18], ops: fixed(row[28], 3),
+  primary: row[33], secondary: row[47] || undefined, raw: row,
+})).filter((row) => row.season && row.games >= 1 && number(row.raw[10]) >= 1 && row.name && positionSlots(row.primary).length > 0);
+
+const pitcherRows: PitcherRow[] = csvRows('pitcher_stats_foreign.csv').slice(1).map((row) => ({
+  season: number(row[0]), team: row[1], teamCode: row[2], name: row[3], foreign: row[5] === '1', id: row[6],
+  games: number(row[9]), era: fixed(row[8], 2, 9.99), wins: row[10], saves: row[12], holds: row[13],
+  starts: number(row[38]), role: row[49], raw: row,
+})).filter((row) => row.season && row.games >= 1 && row.name);
+
+function hitterScore(row: HitterRow) {
+  const ops = number(row.ops);
+  return Math.max(55, Math.min(99, Math.round(54 + ops * 38 + Math.min(row.games, 144) * 0.08)));
+}
+
+function pitcherScore(row: PitcherRow) {
+  const era = number(row.era) || 9.99;
+  return Math.max(55, Math.min(99, Math.round(93 - era * 4 + Math.min(row.games, 75) * 0.12 + row.starts * 0.15)));
+}
+
+function inningsToOuts(value: string | undefined) {
+  const [whole = '0', fraction = ''] = (value || '0').split('.');
+  return number(whole) * 3 + (fraction === '1' ? 1 : fraction === '2' ? 2 : 0);
+}
+
+function hitterMetrics(row: HitterRow) {
+  const raw = row.raw;
+  return { R: number(raw[12]), RBI: number(raw[18]), HBP: number(raw[23]), H: number(raw[13]), AB: number(raw[11]), BB: number(raw[21]), SF: number(raw[20]), TB: number(raw[17]), defG: number(raw[34]) + number(raw[48]) };
+}
+
+function pitcherMetrics(row: PitcherRow) {
+  const raw = row.raw;
+  return { ER: number(raw[22]), HLD: number(raw[13]), outs: inningsToOuts(raw[15]) };
+}
+
+function hitterPlayer(row: HitterRow, slots: Slot[]): Player {
+  const secondarySlots = positionSlots(row.secondary);
+  const eligible = [...new Set([...slots, ...secondarySlots])];
+  return {
+    id: `${row.season}-${row.teamCode}-H-${row.id}`, name: row.name, slot: slots[0], slots: eligible, team: row.team, season: row.season,
+    foreign: row.foreign, type: 'hitter', appearances: row.games, primaryPosition: row.primary, secondaryPosition: row.secondary,
+    line: `타율 ${row.avg} / 홈런 ${row.homers} / 타점 ${row.rbi} / OPS ${row.ops}`, score: hitterScore(row), metrics: hitterMetrics(row),
+  };
+}
+
+function pitcherPlayer(row: PitcherRow, slots: Slot[]): Player {
+  return {
+    id: `${row.season}-${row.teamCode}-P-${row.id}`, name: row.name, slot: slots[0], slots, team: row.team, season: row.season,
+    foreign: row.foreign, type: 'pitcher', appearances: row.games, primaryPosition: row.role || (row.starts > 0 ? '선발' : '불펜'),
+    line: `평균자책 ${row.era} / 승 ${row.wins} / 세이브 ${row.saves} / 홀드 ${row.holds}`, score: pitcherScore(row), metrics: pitcherMetrics(row),
+  };
+}
+
+function makeRoster(season: number, teamCode: string) {
+  const hitters = hitterRows.filter((row) => row.season === season && row.teamCode === teamCode).sort((a, b) => b.games - a.games || number(b.ops) - number(a.ops));
+  const pitchers = pitcherRows.filter((row) => row.season === season && row.teamCode === teamCode).sort((a, b) => b.games - a.games || number(a.era) - number(b.era));
+  const team = hitters[0]?.team || pitchers[0]?.team || teamCode;
+  const candidates = new Map<string, Player>();
+
+  const addHitter = (row: HitterRow, slots: Slot[]) => {
+    const key = `${row.season}-${row.teamCode}-H-${row.id}`;
+    const current = candidates.get(key);
+    if (current) current.slots = [...new Set([...current.slots, ...slots, ...positionSlots(row.secondary)])];
+    else candidates.set(key, hitterPlayer(row, slots));
+  };
+  const addPitcher = (row: PitcherRow, slots: Slot[]) => {
+    const key = `${row.season}-${row.teamCode}-P-${row.id}`;
+    if (!candidates.has(key)) candidates.set(key, pitcherPlayer(row, slots));
+  };
+
+  const hitterTargets: Array<[string, Slot[], number]> = [
+    ['포수', ['C'], 1], ['1루수', ['1B'], 1], ['2루수', ['2B'], 1], ['3루수', ['3B'], 1], ['유격수', ['SS'], 1], ['외야수', ['LF', 'CF', 'RF'], 3], ['지명타자', ['DH'], 1],
+  ];
+  for (const [position, slots, amount] of hitterTargets) {
+    const ranked = hitters.filter((row) => row.primary === position);
+    const chosen = ranked.slice(0, amount);
+    // Keep every ranked hitter in the team-season pool. The draft API selects
+    // the highest eligible names and can therefore replace a previously used ID.
+    ranked.forEach((row) => addHitter(row, slots));
+    // A foreign top-ranked hitter is displayed with the next domestic player at that position as a selectable backup.
+    if (chosen.some((row) => row.foreign)) {
+      const domestic = ranked.find((row) => !row.foreign && !chosen.some((picked) => picked.id === row.id));
+      if (domestic) addHitter(domestic, slots);
+    }
+  }
+
+  // The source already classifies each pitcher as starter or bullpen. A reliever
+  // can have a handful of starts, so GS alone must not decide the role here.
+  const starters = pitchers.filter((row) => row.role === '선발');
+  const starterCount = starters.length >= 4 ? 4 : Math.min(3, starters.length);
+  const selectedStarters = starters.slice(0, starterCount);
+  selectedStarters.forEach((row) => addPitcher(row, ['SP1', 'SP2', 'SP3', 'SP4']));
+
+  // Always expose the top three pitchers already classified as bullpen.
+  const bullpen = pitchers.filter((row) => row.role === '불펜').slice(0, 3);
+  bullpen.forEach((row) => addPitcher(row, ['RP1', 'RP2', 'RP3']));
+
+  return { context: { team, season }, candidates: [...candidates.values()] };
+}
+
+const teamSeasons = new Map<string, { season: number; teamCode: string }>();
+[...hitterRows, ...pitcherRows].forEach((row) => teamSeasons.set(`${row.season}-${row.teamCode}`, { season: row.season, teamCode: row.teamCode }));
+
+export const seasonRosters = [...teamSeasons.values()].map(({ season, teamCode }) => makeRoster(season, teamCode)).filter((roster) => roster.candidates.length > 0);
