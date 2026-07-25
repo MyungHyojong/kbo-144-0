@@ -51,6 +51,7 @@ export async function POST(req: Request) {
     '불펜': clamp(average(bullpen) + 2), '주루': clamp(average(hitters) - 3), '조화': clamp(rating + 1),
   };
   const wins = predictWins(roster);
-  const chance = Math.min(82, Math.max(0.1, (wins - 98) * 1.7));
+  // Undefeated seasons must remain a rare end-game outcome.
+  const chance = Math.min(5, Math.max(0.1, (wins - 118) * 0.18));
   return NextResponse.json({ rating: rating.toFixed(1), wins, losses: 144 - wins, chance: chance.toFixed(1), traits, summary: [`팀 종합 레이팅 ${rating.toFixed(1)}`, `외국인 선수 ${roster.filter((player) => player.foreign).length}/3명`, '선발 4명 · 불펜 3명 구성 완료'] });
 }

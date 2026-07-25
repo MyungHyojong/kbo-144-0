@@ -2,12 +2,14 @@ import { NextResponse } from 'next/server';
 import { seasonRosters } from '../../../lib/players';
 
 const random = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length)];
+const rawPlayerId = (id: string) => id.split('-').at(-1) || id;
 
 export async function POST(request: Request) {
   const { excluded = [], filledSlots = [], previous, reroll = false, dhMode = false } = (await request.json()) as {
     excluded: string[]; filledSlots: string[]; previous?: { team: string; season: number }; reroll?: boolean; dhMode?: boolean;
   };
-  let pools = seasonRosters.filter((pool) => pool.candidates.some((player) => !excluded.includes(player.id)));
+  const excludedPlayerIds = new Set(excluded.map(rawPlayerId));
+  let pools = seasonRosters.filter((pool) => pool.candidates.some((player) => !excludedPlayerIds.has(rawPlayerId(player.id))));
   if (reroll && previous) {
     const different = pools.filter((pool) => pool.context.team !== previous.team || pool.context.season !== previous.season);
     if (different.length) pools = different;
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
   }
   if (!pools.length) return NextResponse.json({ error: '선택 가능한 로스터가 없습니다.' }, { status: 422 });
   const selected = random(pools);
-  const available = selected.candidates.filter((player) => !excluded.includes(player.id));
+  const available = selected.candidates.filter((player) => !excludedPlayerIds.has(rawPlayerId(player.id)));
   const pitchers = available.filter((player) => player.type === 'pitcher');
   const hitters = available.filter((player) => player.type === 'hitter');
   if (dhMode) return NextResponse.json({ context: selected.context, candidates: hitters, occupiedSlots: filledSlots, dhMode: true });

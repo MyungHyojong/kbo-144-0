@@ -136,9 +136,8 @@ export default function Home() {
 
   const renderCandidate = (player: Player) => {
     const occupied = (dhMode ? Boolean(roster.DH) : !availableSlotFor(player)) || (player.foreign && foreign >= 3);
-    const positions = [player.primaryPosition, player.secondaryPosition].filter(Boolean).join(' | ');
     return <button className={`player ${player.foreign ? 'foreign-player' : ''} ${dhMode && player.type === 'hitter' ? 'dh-choice' : ''} ${occupied ? 'occupied' : ''}`} key={player.id} disabled={occupied} onClick={() => choose(player)}>
-      <span>{positions}{player.foreign ? ' · 외국인' : ''}</span><b>{player.name}</b><small>{mode === 'classic' ? player.line : '기록 비공개 · 선수 이름과 포지션만 보고 선택'}</small>
+      <span className="position-list"><span>{player.primaryPosition}</span>{player.secondaryPosition && <><span className="position-separator"> | </span><span className="position-secondary">{player.secondaryPosition}</span></>}{player.foreign ? ' · 외국인' : ''}</span><b>{player.name}</b><small>{mode === 'classic' ? player.line : '기록 비공개 · 선수 이름과 포지션만 보고 선택'}</small>
     </button>;
   };
 
