@@ -8,8 +8,8 @@ const pitchSlots: Slot[] = ['SP1', 'SP2', 'SP3', 'SP4', 'RP1', 'RP2', 'RP3'];
 const outfieldSlots: Slot[] = ['LF', 'CF', 'RF'];
 const starterSlots: Slot[] = ['SP1', 'SP2', 'SP3', 'SP4'];
 const bullpenSlots: Slot[] = ['RP1', 'RP2', 'RP3'];
-const SITE_VERSION = 'DEMO v0.1.0';
-const LAST_UPDATED = '2026.07.25 12:47 KST';
+const SITE_VERSION = 'DEMO v0.1.1';
+const LAST_UPDATED = '2026.07.26 09:51 KST';
 
 const slotLabels: Record<Slot, string> = {
   C: '포수', '1B': '1루수', '2B': '2루수', SS: '유격수', '3B': '3루수',
