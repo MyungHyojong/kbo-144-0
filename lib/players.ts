@@ -21,7 +21,7 @@ export type Player = {
 
 export const slotOrder: Slot[] = ['C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF', 'DH', 'SP1', 'SP2', 'SP3', 'SP4', 'RP1', 'RP2', 'RP3'];
 
-type HitterRow = { season: number; team: string; teamCode: string; id: string; name: string; foreign: boolean; games: number; avg: string; homers: string; rbi: string; ops: string; primary: string; secondary?: string; raw: string[] };
+type HitterRow = { season: number; team: string; teamCode: string; id: string; name: string; foreign: boolean; games: number; avg: string; homers: string; rbi: string; ops?: string; primary: string; secondary?: string; raw: string[] };
 type PitcherRow = { season: number; team: string; teamCode: string; id: string; name: string; foreign: boolean; games: number; era: string; wins: string; saves: string; holds: string; starts: number; role: string; raw: string[] };
 
 function parseCsvLine(line: string) {
@@ -67,7 +67,7 @@ function positionSlots(position?: string): Slot[] {
 
 const hitterRows: HitterRow[] = csvRows('hitter_defense_stats_foreign.csv').slice(1).map((row) => ({
   season: number(row[0]), team: row[1], teamCode: row[2], foreign: row[4] === '1', name: row[5], id: row[6],
-  games: number(row[9]), avg: fixed(row[8], 3), homers: row[16], rbi: row[18], ops: fixed(row[28], 3),
+  games: number(row[9]), avg: fixed(row[8], 3), homers: row[16], rbi: row[18], ops: row[28] === '-' ? undefined : fixed(row[28], 3),
   primary: row[33], secondary: row[47] || undefined, raw: row,
 })).filter((row) => row.season && row.games >= 1 && number(row.raw[10]) >= 1 && row.name && positionSlots(row.primary).length > 0);
 
@@ -79,6 +79,7 @@ const pitcherRows: PitcherRow[] = csvRows('pitcher_stats_foreign.csv').slice(1).
 
 function hitterScore(row: HitterRow) {
   const ops = number(row.ops);
+  if (!row.ops) return Math.max(55, Math.min(99, Math.round(46 + number(row.avg) * 120 + number(row.homers) * 0.55 + Math.min(row.games, 144) * 0.08)));
   return Math.max(55, Math.min(99, Math.round(54 + ops * 38 + Math.min(row.games, 144) * 0.08)));
 }
 
@@ -108,7 +109,7 @@ function hitterPlayer(row: HitterRow, slots: Slot[]): Player {
   return {
     id: `${row.season}-${row.teamCode}-H-${row.id}`, name: row.name, slot: slots[0], slots: eligible, team: row.team, season: row.season,
     foreign: row.foreign, type: 'hitter', appearances: row.games, primaryPosition: row.primary, secondaryPosition: row.secondary,
-    line: `타율 ${row.avg} / 홈런 ${row.homers} / 타점 ${row.rbi} / OPS ${row.ops}`, score: hitterScore(row), metrics: hitterMetrics(row),
+    line: row.ops ? `타율 ${row.avg} / 홈런 ${row.homers} / 타점 ${row.rbi} / OPS ${row.ops}` : `타율 ${row.avg} / 홈런 ${row.homers} / 타점 ${row.rbi}`, score: hitterScore(row), metrics: hitterMetrics(row),
   };
 }
 

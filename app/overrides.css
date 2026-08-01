@@ -24,6 +24,7 @@ h2,.wordmark,.roulette-inner p,.result strong,.player b{font-weight:700}
 /* Tablet landscape needs the same wider middle-infield spacing. */
 @media(min-width:801px) and (max-width:1180px){.marker-2B{right:27%}.marker-SS{left:27%}}
 .player b{font-size:18px;letter-spacing:-.045em;white-space:nowrap;overflow:visible;text-overflow:clip}
+.reroll{padding:10px 16px!important;font-size:10px!important;font-weight:700!important}.lineup-wins{margin:5px 0 0;color:#55705d;font:600 10px/1 'DM Mono',monospace}.lineup-wins b{margin-left:4px;color:#1c6b3a;font-size:18px}.result strong{font-size:clamp(58px,8vw,104px)!important;font-weight:600!important}
 .site-version{display:flex;justify-content:space-between;gap:16px;margin:28px 0 6px;padding-top:14px;border-top:1px solid #d9e5dc;color:#829087;font:500 10px/1.4 'DM Mono',monospace;letter-spacing:.04em}
 @media(min-width:801px) and (max-width:1180px){.player .position-secondary{display:block}.player .position-separator{display:inline}}
 @media(max-width:800px){.site-version{font-size:8px;gap:8px}}
