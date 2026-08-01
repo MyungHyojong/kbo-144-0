@@ -8,12 +8,8 @@ const pitchSlots: Slot[] = ['SP1', 'SP2', 'SP3', 'SP4', 'RP1', 'RP2', 'RP3'];
 const outfieldSlots: Slot[] = ['LF', 'CF', 'RF'];
 const starterSlots: Slot[] = ['SP1', 'SP2', 'SP3', 'SP4'];
 const bullpenSlots: Slot[] = ['RP1', 'RP2', 'RP3'];
-const SITE_VERSION = 'DEMO v0.1.9';
-const LAST_UPDATED = '2026.08.01 21:30 KST';
-const MODEL_LEADERBOARD = [
-  ['2015 삼성', 125], ['2016 두산', 124], ['2017 KIA', 124], ['2019 키움', 124], ['2015 NC', 123],
-  ['2002 삼성', 120], ['2003 삼성', 120], ['2022 LG', 119], ['2024 KIA', 119], ['2023 LG', 118],
-];
+const SITE_VERSION = 'DEMO v0.1.10';
+const LAST_UPDATED = '2026.08.01 21:35 KST';
 
 const slotLabels: Record<Slot, string> = {
   C: '포수', '1B': '1루수', '2B': '2루수', SS: '유격수', '3B': '3루수',
@@ -155,7 +151,6 @@ export default function Home() {
     </section>
     <section className="season-action"><div><p className="kicker">READY FOR THE SEASON?</p><b>{complete ? '라인업 완성. 이제 144경기를 시작할 수 있습니다.' : `남은 자리 ${16 - selected.length}개를 채워 주세요.`}</b></div><button disabled={!complete || loading} onClick={simulate}>{loading ? 'SIMULATING...' : '시즌 진행'}</button></section>
     {result && <section className="result"><div className="record"><p className="kicker">PROJECTED KBO SEASON</p><strong>{result.wins}-{result.losses}</strong><p>이 로스터가 144경기를 치렀을 때의 예상 성적입니다.</p><button className="restart-game" onClick={() => restart()}>다시 게임하기</button></div><div className="analysis"><div><p className="kicker">TEAM DNA</p><b className="chance">{result.chance}%</b><span>144-0 달성 확률</span>{result.summary.map((item) => <p className="summary" key={item}>{item}</p>)}</div><div className="score-list">{Object.entries(result.traits).map(([label, score]) => <div className="score-card" key={label}><span>{label}</span><b>{score}</b><small>/ 100점</small></div>)}</div></div></section>}
-    <section className="model-leaderboard"><p className="kicker">MODEL HALL OF FAME</p><h2>역대 모델 상위 로스터</h2><div>{MODEL_LEADERBOARD.map(([team, wins], index) => <p key={team}><span>{index + 1}</span><b>{team}</b><strong>{wins}승</strong></p>)}</div></section>
     <footer className="site-version"><span>{SITE_VERSION}</span><span>LAST UPDATED {LAST_UPDATED}</span></footer>
   </main>;
 }
