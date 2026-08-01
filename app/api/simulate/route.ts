@@ -5,6 +5,8 @@ import type { Player } from '../../../lib/players';
 // from the draft roster stay at their historical average; selected-player values
 // below are standardized with the original model's mean and scale.
 const RIDGE_INTERCEPT = 0.4992065217391304;
+// Top 50 of 214 historical team-seasons pass this full-model calibration line.
+const RIDGE_144_THRESHOLD = 0.5583420127841976;
 const ridgeTerms = [
   ['bat_R', 437.2826086956522, 88.3940444195585, 0.02650877009548392],
   ['bat_RBI', 411.42934782608694, 91.85589734924775, 0.012729296559971848],
@@ -22,19 +24,24 @@ const ridgeTerms = [
 
 function sum(players: Player[], key: string) { return players.reduce((total, player) => total + (player.metrics[key] || 0), 0); }
 
-function predictWins(roster: Player[]) {
+function ridgeWinPct(roster: Player[]) {
   const hitters = roster.filter((player) => player.type === 'hitter');
-  const starters = roster.filter((player) => player.slot.startsWith('SP'));
+  const pitchers = roster.filter((player) => player.type === 'pitcher');
   const bullpen = roster.filter((player) => player.slot.startsWith('RP'));
-  const average = (players: Player[]) => players.reduce((total, player) => total + player.score, 0) / Math.max(1, players.length);
-  const batting = average(hitters);
-  const starting = average(starters);
-  const relief = average(bullpen);
-  const foreignBonus = roster.filter((player) => player.foreign).length * 2;
-  // A game-first formula: OPS/G-based hitter scores, ERA/G-based pitcher scores,
-  // and all-time draft rosters receive a generous baseline.
-  const wins = 82 + (batting - 75) * 2.1 + (starting - 75) * 1.25 + (relief - 75) * 0.85 + foreignBonus;
-  return Math.round(Math.max(82, Math.min(144, wins)));
+  const h = sum(hitters, 'H'); const ab = sum(hitters, 'AB'); const bb = sum(hitters, 'BB');
+  const hbp = sum(hitters, 'HBP'); const sf = sum(hitters, 'SF'); const tb = sum(hitters, 'TB');
+  const outs = sum(pitchers, 'outs'); const bullpenOuts = sum(bullpen, 'outs');
+  const values: Record<string, number> = {
+    bat_R: sum(hitters, 'R'), bat_RBI: sum(hitters, 'RBI'), bat_HBP: hbp, team_avg: ab ? h / ab : 0,
+    team_slg: ab ? tb / ab : 0, team_ops: ab ? tb / ab + (h + bb + hbp) / (ab + bb + hbp + sf) : 0,
+    def_G: sum(hitters, 'defG'), pit_ER: sum(pitchers, 'ER'), pit_HLD: sum(pitchers, 'HLD'), pit_outs: outs,
+    team_era: outs ? sum(pitchers, 'ER') * 27 / outs : 9.99, bullpen_era: bullpenOuts ? sum(bullpen, 'ER') * 27 / bullpenOuts : 9.99,
+  };
+  return ridgeTerms.reduce((total, [key, mean, scale, coefficient]) => total + ((values[key] - mean) / scale) * coefficient, RIDGE_INTERCEPT);
+}
+
+function predictWins(roster: Player[]) {
+  return Math.round(Math.max(45, Math.min(115, ridgeWinPct(roster) * 144)));
 }
 
 export async function POST(req: Request) {
@@ -54,6 +61,6 @@ export async function POST(req: Request) {
   // Keep repeated simulations nearly deterministic: only a small ±2-game swing.
   const wins = Math.max(82, Math.min(144, baseWins + Math.round((Math.random() - 0.5) * 4)));
   // Undefeated seasons must remain a rare end-game outcome.
-  const chance = Math.min(0.5, Math.max(0.01, (wins - 128) * 0.03));
+  const chance = Math.min(0.5, Math.max(0.01, (ridgeWinPct(roster) - RIDGE_144_THRESHOLD) * 5));
   return NextResponse.json({ rating: rating.toFixed(1), wins, losses: 144 - wins, chance: chance.toFixed(1), traits, summary: [`팀 종합 레이팅 ${rating.toFixed(1)}`, `외국인 선수 ${roster.filter((player) => player.foreign).length}/3명`, '선발 4명 · 불펜 3명 구성 완료'] });
 }
