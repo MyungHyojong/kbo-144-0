@@ -5,6 +5,7 @@ import type { Player } from '../../../lib/players';
 // from the draft roster stay at their historical average; selected-player values
 // below are standardized with the original model's mean and scale.
 const RIDGE_INTERCEPT = 0.4992065217391304;
+const RIDGE_SPREAD_WEIGHT = 1.25;
 // Top 50 of 214 historical team-seasons pass this full-model calibration line.
 const RIDGE_144_THRESHOLD = 0.47;
 const ridgeTerms = [
@@ -37,7 +38,8 @@ function ridgeWinPct(roster: Player[]) {
     def_G: sum(hitters, 'defG'), pit_ER: sum(pitchers, 'ER'), pit_HLD: sum(pitchers, 'HLD'), pit_outs: outs,
     team_era: outs ? sum(pitchers, 'ER') * 27 / outs : 9.99, bullpen_era: bullpenOuts ? sum(bullpen, 'ER') * 27 / bullpenOuts : 9.99,
   };
-  return ridgeTerms.reduce((total, [key, mean, scale, coefficient]) => total + ((values[key] - mean) / scale) * coefficient, RIDGE_INTERCEPT);
+  const weightedTerms = ridgeTerms.reduce((total, [key, mean, scale, coefficient]) => total + ((values[key] - mean) / scale) * coefficient, 0);
+  return RIDGE_INTERCEPT + weightedTerms * RIDGE_SPREAD_WEIGHT;
 }
 
 function predictWins(roster: Player[]) {
