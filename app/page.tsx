@@ -8,8 +8,8 @@ const pitchSlots: Slot[] = ['SP1', 'SP2', 'SP3', 'SP4', 'RP1', 'RP2', 'RP3'];
 const outfieldSlots: Slot[] = ['LF', 'CF', 'RF'];
 const starterSlots: Slot[] = ['SP1', 'SP2', 'SP3', 'SP4'];
 const bullpenSlots: Slot[] = ['RP1', 'RP2', 'RP3'];
-const SITE_VERSION = 'DEMO v0.1.5';
-const LAST_UPDATED = '2026.08.01 20:45 KST';
+const SITE_VERSION = 'DEMO v0.1.6';
+const LAST_UPDATED = '2026.08.01 20:55 KST';
 const MODEL_LEADERBOARD = [
   ['2015 삼성', 102], ['2019 키움', 102], ['2016 두산', 101], ['2017 KIA', 101], ['2015 NC', 100],
   ['2002 삼성', 97], ['2003 삼성', 96], ['2022 LG', 95], ['2024 KIA', 95], ['2023 LG', 94],
