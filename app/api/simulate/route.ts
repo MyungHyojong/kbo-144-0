@@ -5,7 +5,7 @@ import type { Player } from '../../../lib/players';
 // from the draft roster stay at their historical average; selected-player values
 // below are standardized with the original model's mean and scale.
 const RIDGE_INTERCEPT = 0.4992065217391304;
-const RIDGE_SPREAD_WEIGHT = 1.25;
+const RIDGE_SPREAD_WEIGHT = 1.8;
 // Top 50 of 214 historical team-seasons pass this full-model calibration line.
 const RIDGE_144_THRESHOLD = 0.47;
 const ridgeTerms = [
