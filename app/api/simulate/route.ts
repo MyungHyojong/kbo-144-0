@@ -6,7 +6,7 @@ import type { Player } from '../../../lib/players';
 // below are standardized with the original model's mean and scale.
 const RIDGE_INTERCEPT = 0.4992065217391304;
 // Top 50 of 214 historical team-seasons pass this full-model calibration line.
-const RIDGE_144_THRESHOLD = 0.5583420127841976;
+const RIDGE_144_THRESHOLD = 0.52;
 const ridgeTerms = [
   ['bat_R', 437.2826086956522, 88.3940444195585, 0.02650877009548392],
   ['bat_RBI', 411.42934782608694, 91.85589734924775, 0.012729296559971848],
@@ -41,7 +41,8 @@ function ridgeWinPct(roster: Player[]) {
 }
 
 function predictWins(roster: Player[]) {
-  return Math.round(Math.max(45, Math.min(115, ridgeWinPct(roster) * 144)));
+  // Preserve Ridge ordering while using a friendlier all-time-draft conversion.
+  return Math.round(Math.max(85, Math.min(144, 65 + ridgeWinPct(roster) * 100)));
 }
 
 export async function POST(req: Request) {
@@ -61,6 +62,6 @@ export async function POST(req: Request) {
   // Keep repeated simulations nearly deterministic: only a small ±2-game swing.
   const wins = Math.max(82, Math.min(144, baseWins + Math.round((Math.random() - 0.5) * 4)));
   // Undefeated seasons must remain a rare end-game outcome.
-  const chance = Math.min(0.5, Math.max(0.01, (ridgeWinPct(roster) - RIDGE_144_THRESHOLD) * 5));
+  const chance = Math.min(0.5, Math.max(0.01, (ridgeWinPct(roster) - RIDGE_144_THRESHOLD) * 3.8));
   return NextResponse.json({ rating: rating.toFixed(1), wins, losses: 144 - wins, chance: chance.toFixed(1), traits, summary: [`팀 종합 레이팅 ${rating.toFixed(1)}`, `외국인 선수 ${roster.filter((player) => player.foreign).length}/3명`, '선발 4명 · 불펜 3명 구성 완료'] });
 }
