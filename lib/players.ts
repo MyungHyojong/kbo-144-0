@@ -67,15 +67,15 @@ function positionSlots(position?: string): Slot[] {
 
 const hitterRows: HitterRow[] = csvRows('hitter_defense_stats_foreign.csv').slice(1).map((row) => ({
   season: number(row[0]), team: row[1], teamCode: row[2], foreign: row[4] === '1', name: row[5], id: row[6],
-  games: number(row[9]), avg: fixed(row[8], 3), homers: row[16], rbi: row[18], ops: row[28] === '-' ? undefined : fixed(row[28], 3),
+  games: number(row[9]), avg: fixed(row[8], 3), homers: row[16], rbi: row[18], ops: row[28] && row[28] !== '-' ? fixed(row[28], 3) : undefined,
   primary: row[33], secondary: row[47] || undefined, raw: row,
-})).filter((row) => row.season && row.games >= 1 && number(row.raw[10]) >= 1 && row.name && positionSlots(row.primary).length > 0);
+})).filter((row) => row.season >= 2007 && row.games >= 1 && number(row.raw[10]) >= 1 && row.name && positionSlots(row.primary).length > 0);
 
 const pitcherRows: PitcherRow[] = csvRows('pitcher_stats_foreign.csv').slice(1).map((row) => ({
   season: number(row[0]), team: row[1], teamCode: row[2], name: row[3], foreign: row[5] === '1', id: row[6],
   games: number(row[9]), era: fixed(row[8], 2, 9.99), wins: row[10], saves: row[12], holds: row[13],
   starts: number(row[38]), role: row[49], raw: row,
-})).filter((row) => row.season && row.games >= 1 && row.name);
+})).filter((row) => row.season >= 2007 && row.games >= 1 && row.name);
 
 function hitterScore(row: HitterRow) {
   const ops = number(row.ops);
