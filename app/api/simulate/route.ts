@@ -5,7 +5,7 @@ import type { Player } from '../../../lib/players';
 // from the draft roster stay at their historical average; selected-player values
 // below are standardized with the original model's mean and scale.
 const RIDGE_INTERCEPT = 0.4992065217391304;
-const RIDGE_SPREAD_WEIGHT = 0.6;
+const RIDGE_SPREAD_WEIGHT = 0.7;
 // Top 50 of 214 historical team-seasons pass this full-model calibration line.
 const RIDGE_144_THRESHOLD = 0.47;
 const ridgeTerms = [
@@ -46,7 +46,7 @@ function predictWins(roster: Player[]) {
   // Preserve Ridge ordering while using a friendlier all-time-draft conversion.
   // Calibrated so the 2015 Samsung historical top roster (ridge ≈ 0.7095)
   // projects to about 120 wins, while preserving the Ridge ranking.
-  return Math.round(Math.max(82, Math.min(142, 100 + (ridgeWinPct(roster) - 0.5) * 95)));
+  return Math.round(Math.max(82, Math.min(140, 86 + (ridgeWinPct(roster) - 0.5) * 202)));
 }
 
 export async function POST(req: Request) {
@@ -63,9 +63,7 @@ export async function POST(req: Request) {
     '불펜': clamp(average(bullpen) + 2), '주루': clamp(average(hitters) - 3), '조화': clamp(rating + 1),
   };
   const baseWins = predictWins(roster);
-  // A 144-win season is a rare perfect-lineup bonus, not a routine random swing.
-  const miracleBoost = baseWins === 142 && Math.random() < 0.03 ? 2 : 0;
-  const wins = Math.max(82, Math.min(144, baseWins + miracleBoost));
+  const wins = baseWins;
   // Undefeated seasons must remain a rare end-game outcome.
   const chance = Math.min(0.5, Math.max(0.01, (ridgeWinPct(roster) - RIDGE_144_THRESHOLD) * 2.1));
   return NextResponse.json({ rating: rating.toFixed(1), wins, losses: 144 - wins, chance: chance.toFixed(1), traits, summary: [`팀 종합 레이팅 ${rating.toFixed(1)}`, `외국인 선수 ${roster.filter((player) => player.foreign).length}/3명`, '선발 4명 · 불펜 3명 구성 완료'] });
