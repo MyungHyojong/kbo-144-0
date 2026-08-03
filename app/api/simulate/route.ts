@@ -46,7 +46,7 @@ function predictWins(roster: Player[]) {
   // Preserve Ridge ordering while using a friendlier all-time-draft conversion.
   // Calibrated so the 2015 Samsung historical top roster (ridge ≈ 0.7095)
   // projects to about 120 wins, while preserving the Ridge ranking.
-  return Math.round(Math.max(82, Math.min(140, 86 + (ridgeWinPct(roster) - 0.5) * 202)));
+  return Math.round(Math.max(0, Math.min(140, 86 + (ridgeWinPct(roster) - 0.5) * 202)));
 }
 
 export async function POST(req: Request) {
